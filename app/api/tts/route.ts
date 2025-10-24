@@ -17,9 +17,10 @@ export async function POST(request: NextRequest) {
     }
 
     const mp3 = await openai.audio.speech.create({
-      model: "tts-1",
+      model: "tts-1-hd", // Use HD model for better quality
       voice: voice as any,
       input: text,
+      response_format: "mp3",
     });
 
     const buffer = Buffer.from(await mp3.arrayBuffer());

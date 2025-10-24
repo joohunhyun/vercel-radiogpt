@@ -1,11 +1,12 @@
 "use client";
 
-import { Apple, Chrome } from "lucide-react";
+import { Apple, ArrowLeft, Chrome } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
+  const [isLogin, setIsLogin] = useState(false);
   const router = useRouter();
 
   const handleContinue = (e: React.FormEvent) => {
@@ -15,18 +16,59 @@ export default function LoginPage() {
     router.push("/create");
   };
 
+  const handleBackToLanding = () => {
+    router.push("/landing");
+  };
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
+      {/* Back Button */}
+      <div className="px-6 py-4">
+        <button
+          onClick={handleBackToLanding}
+          className="flex items-center space-x-2 text-gray-600 hover:text-black transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span>뒤로가기</span>
+        </button>
+      </div>
+
       {/* Header */}
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
+          {/* Toggle between Login/Register */}
+          <div className="flex mb-8 bg-gray-100 rounded-xl p-1">
+            <button
+              onClick={() => setIsLogin(false)}
+              className={`flex-1 py-3 px-4 text-center font-medium rounded-lg transition-colors ${
+                !isLogin
+                  ? "bg-white text-black shadow-sm"
+                  : "text-gray-600 hover:text-black"
+              }`}
+            >
+              회원가입
+            </button>
+            <button
+              onClick={() => setIsLogin(true)}
+              className={`flex-1 py-3 px-4 text-center font-medium rounded-lg transition-colors ${
+                isLogin
+                  ? "bg-white text-black shadow-sm"
+                  : "text-gray-600 hover:text-black"
+              }`}
+            >
+              로그인
+            </button>
+          </div>
+
           {/* Title */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              계정 만들기
+            <h1 className="text-3xl font-bold text-black mb-2">
+              {isLogin ? "로그인" : "계정 만들기"}
             </h1>
             <p className="text-gray-600 text-lg">
-              이 앱에 가입하려면 이메일을 입력하세요
+              {isLogin
+                ? "계정에 로그인하세요"
+                : "이 앱에 가입하려면 이메일을 입력하세요"}
             </p>
           </div>
 
@@ -48,7 +90,7 @@ export default function LoginPage() {
               type="submit"
               className="w-full bg-black text-white py-4 px-6 rounded-xl text-lg font-semibold hover:bg-gray-800 transition-colors"
             >
-              계속
+              {isLogin ? "로그인" : "계속"}
             </button>
           </form>
 

@@ -45,7 +45,7 @@ export class FallbackTTS {
         },
         body: JSON.stringify({
           text,
-          voice: "alloy",
+          voice: "nova", // Better for Korean speech
         }),
       });
 
@@ -146,7 +146,7 @@ export class FallbackTTS {
         },
         body: JSON.stringify({
           text,
-          voice: "alloy",
+          voice: "nova", // Better for Korean speech
         }),
       });
 

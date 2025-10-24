@@ -1,5 +1,6 @@
 "use client";
 
+import FrequencyLoader from "@/components/FrequencyLoader";
 import Progress from "@/components/Progress";
 import Transport from "@/components/Transport";
 import { FallbackTTS } from "@/lib/fallback";
@@ -25,16 +26,19 @@ export default function PlayerPage() {
   const [activeKeywords, setActiveKeywords] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showFrequencyLoader, setShowFrequencyLoader] = useState(false);
 
   useEffect(() => {
     // Load config from localStorage
     const savedConfig = localStorage.getItem("podcast.config");
     if (!savedConfig) {
+      console.log("No podcast config found, redirecting to create page");
       router.push("/create");
       return;
     }
 
     const parsedConfig = JSON.parse(savedConfig) as PodcastConfig;
+    console.log("Loaded podcast config:", parsedConfig);
     setConfig(parsedConfig);
     setActiveKeywords(parsedConfig.contentKeywords);
 
@@ -46,23 +50,15 @@ export default function PlayerPage() {
     try {
       setIsLoading(true);
 
-      // Try to create Realtime session first
-      const sessionResponse = await fetch("/api/session", { method: "POST" });
+      // For prototype, we'll use fallback TTS by default
+      // In production, you would try Realtime API first
+      console.log("Initializing audio system...");
 
-      if (sessionResponse.ok) {
-        const session = await sessionResponse.json();
-        realtimeRef.current = new RealtimeConnection();
-        const connected = await realtimeRef.current.connect(session);
-
-        if (connected) {
-          setAudioState((prev) => ({ ...prev, isRealtimeMode: true }));
-          return;
-        }
-      }
-
-      // Fallback to TTS
+      // Initialize fallback TTS system
       fallbackRef.current = new FallbackTTS();
       setAudioState((prev) => ({ ...prev, isRealtimeMode: false }));
+
+      console.log("Fallback TTS system initialized");
     } catch (error) {
       console.error("Audio initialization error:", error);
       setError("오디오 시스템 초기화에 실패했습니다.");
@@ -75,44 +71,44 @@ export default function PlayerPage() {
     if (!config) return;
 
     try {
-      if (audioState.isRealtimeMode && realtimeRef.current) {
-        // Realtime mode - start/stop listening
-        if (!audioState.isRecording) {
-          const success = await realtimeRef.current.startListening();
-          if (success) {
-            setAudioState((prev) => ({
-              ...prev,
-              isRecording: true,
-              isPlaying: true,
-            }));
-          }
-        } else {
-          realtimeRef.current.disconnect();
-          setAudioState((prev) => ({
-            ...prev,
-            isRecording: false,
-            isPlaying: false,
-          }));
-        }
-      } else if (fallbackRef.current) {
+      console.log("Play/pause clicked, current state:", audioState.isPlaying);
+
+      if (fallbackRef.current) {
         // Fallback mode
         if (audioState.isPlaying) {
+          console.log("Pausing audio...");
           fallbackRef.current.pause();
           setAudioState((prev) => ({ ...prev, isPlaying: false }));
         } else {
+          console.log("Starting audio...");
           if (
             fallbackRef.current.ended ||
             fallbackRef.current.currentTime === 0
           ) {
-            await fallbackRef.current.generatePodcast(config);
+            console.log("Generating new podcast...");
+            setShowFrequencyLoader(true);
+
+            const success = await fallbackRef.current.generatePodcast(config);
+            if (!success) {
+              setError("팟캐스트 생성에 실패했습니다.");
+              setShowFrequencyLoader(false);
+              return;
+            }
           }
           await fallbackRef.current.play();
           setAudioState((prev) => ({ ...prev, isPlaying: true }));
+          setShowFrequencyLoader(false);
+          console.log("Audio started successfully");
         }
+      } else {
+        setError("오디오 시스템이 초기화되지 않았습니다.");
       }
     } catch (error) {
       console.error("Play/pause error:", error);
-      setError("재생 중 오류가 발생했습니다.");
+      setError(
+        "재생 중 오류가 발생했습니다: " +
+          (error instanceof Error ? error.message : String(error))
+      );
     }
   };
 
@@ -188,6 +184,12 @@ export default function PlayerPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Frequency Loader */}
+      <FrequencyLoader
+        isVisible={showFrequencyLoader}
+        onComplete={() => setShowFrequencyLoader(false)}
+      />
+
       {/* Header */}
       <div className="px-6 py-8">
         <div className="flex items-center justify-between mb-6">

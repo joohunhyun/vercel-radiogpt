@@ -192,7 +192,14 @@ export default function CreatePage() {
                   name="length"
                   value={option.value}
                   checked={length === option.value}
-                  onChange={(e) => setLength(e.target.value as any)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "continuous") {
+                      setLength("continuous");
+                    } else {
+                      setLength(parseInt(value) as 5 | 10 | 30 | 60);
+                    }
+                  }}
                   className="w-4 h-4 text-black focus:ring-black"
                 />
                 <span className="text-gray-700">{option.label}</span>
