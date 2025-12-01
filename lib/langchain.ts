@@ -1,19 +1,20 @@
 import "server-only";
 
 import type { PodcastConfig, TonePreference } from "@/types";
-import { StringOutputParser } from "@langchain/core/output_parsers";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { ChatOpenAI } from "@langchain/openai";
 
-const instructionTemplate = `
-당신은 실시간으로 음성을 생성하는 한국어 팟캐스트 DJ입니다. 아래 정보를 참고하여 청취자에게 맞춤형 팟캐스트를 제공합니다.
+const instructionTemplate = (
+  topic: string,
+  lengthDescription: string,
+  keywordList: string,
+  toneLabel: string,
+  sourceSummary: string
+) => `당신은 실시간으로 음성을 생성하는 한국어 팟캐스트 DJ입니다. 아래 정보를 참고하여 청취자에게 맞춤형 팟캐스트를 제공합니다.
 
-아래 정보는 무조건 따르세요:
-- 주제: {topic}
-- 원하는 팟캐스트 길이: {lengthDescription}
-- 키워드: {keywordList}
-- TTS 톤: {toneLabel}
-- 참고 자료: {sourceSummary}
+- 주제: ${topic}
+- 원하는 팟캐스트 길이: ${lengthDescription}
+- 키워드: ${keywordList}
+- TTS 톤: ${toneLabel}
+- 참고 자료: ${sourceSummary}
 
 필수 지침:
 - 사용자에게 되묻는 표현을 절대 사용하지 마세요. 주제가 모호하더라도 주어진 정보와 사전 지식을 바탕으로 최선을 다해 내용을 구성하고 진행하세요.
@@ -39,44 +40,28 @@ const lengthLabels: Record<PodcastConfig["length"], string> = {
   continuous: "중단 없이 이어지는 라이브 모드",
 };
 
-const parser = new StringOutputParser();
-
 export async function generateRealtimeInstructions(
   config: PodcastConfig
 ): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
-  }
-
-  const model = new ChatOpenAI({
-    apiKey,
-    model: "gpt-4o-mini",
-    temperature: 0.4,
-  });
-
-  const prompt = PromptTemplate.fromTemplate(instructionTemplate);
-
-  const chain = prompt.pipe(model).pipe(parser);
-
+  const topic = config.topic || "오늘의 추천 이슈";
+  const lengthDescription = lengthLabels[config.length];
   const keywordList =
-    config.contentKeywords.length > 0
+    config.contentKeywords && config.contentKeywords.length > 0
       ? config.contentKeywords.join(", ")
       : "사용자 지정 없음";
+  const toneLabel = toneLabels[config.tone];
+  const sourceSummary = truncateSource(config.pdfText ?? config.fileText);
 
-  const sourceSummary =
-    config.pdfText ?? config.fileText ?? "추가 참고 자료 없음";
-
-  return chain.invoke({
-    topic: config.topic || "오늘의 추천 이슈",
-    lengthDescription: lengthLabels[config.length],
+  return instructionTemplate(
+    topic,
+    lengthDescription,
     keywordList,
-    toneLabel: toneLabels[config.tone],
-    sourceSummary: truncateSource(sourceSummary),
-  });
+    toneLabel,
+    sourceSummary
+  );
 }
 
-function truncateSource(text?: string) {
+function truncateSource(text?: string | undefined) {
   if (!text) return "추가 참고 자료 없음";
   return text.length > 1600 ? `${text.slice(0, 1600)}...` : text;
 }
