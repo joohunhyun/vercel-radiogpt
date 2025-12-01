@@ -1,7 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ["openai"],
+    serverComponentsExternalPackages: [
+      "openai",
+      "langchain",
+      "@langchain/openai",
+      "pdf-parse",
+      "beautiful-soup-js",
+    ],
   },
 };
 

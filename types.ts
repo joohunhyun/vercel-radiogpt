@@ -1,10 +1,15 @@
+export type TonePreference = "soft" | "energetic" | "calm" | "narrative";
+
 export type PodcastConfig = {
-  mode: "keywords" | "file";
+  topic: string;
+  mode: "keywords" | "file" | "pdf";
   contentKeywords: string[];
   djKeywords: string[];
   length: 5 | 10 | 30 | 60 | "continuous";
   fileText?: string;
+  pdfText?: string;
   language: "ko" | "en";
+  tone: TonePreference;
 };
 
 export type ControlSignal =
@@ -18,7 +23,7 @@ export type ControlSignal =
 
 export type RealtimeSession = {
   sessionId: string;
-  token: string;
+  clientSecret: string;
   expiresAt: number;
 };
 

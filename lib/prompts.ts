@@ -1,4 +1,4 @@
-import type { PodcastConfig } from "@/types";
+import type { PodcastConfig, TonePreference } from "@/types";
 
 export const SYSTEM_BASE_PROMPT = `당신은 사용자 맞춤형 AI 팟캐스트 DJ입니다. 사용자의 키워드, 톤 힌트, 목표 길이에 맞춰 개인화된 오디오 쇼를 한국어로 생성합니다.
 
@@ -14,25 +14,27 @@ export const SYSTEM_BASE_PROMPT = `당신은 사용자 맞춤형 AI 팟캐스트
 - 피드백에 적응할 때는 변경 사항을 간략하게 언급하고 부드럽게 이어가세요.`;
 
 export function buildUserPlan(config: PodcastConfig): string {
-  const { mode, contentKeywords, djKeywords, length, fileText, language } =
-    config;
+  const topic = config.topic || "오늘의 추천 이슈";
+  const keywordSummary =
+    config.contentKeywords.length > 0
+      ? config.contentKeywords.join(", ")
+      : "키워드 지정 없음";
+  const djTone = config.djKeywords.length
+    ? config.djKeywords.join(", ")
+    : "기본 톤";
+  const duration =
+    config.length === "continuous" ? "연속 생성" : `${config.length}분`;
+  const attachments = config.pdfText ?? config.fileText ?? "첨부 자료 없음";
 
-  let topicDescription = "";
-  if (mode === "file" && fileText) {
-    topicDescription = `파일 내용 기반: ${fileText.substring(0, 200)}...`;
-  } else {
-    topicDescription = `컨텐츠 키워드: ${contentKeywords.join(", ")}`;
-  }
+  return `주제: ${topic}
+컨텐츠 키워드: ${keywordSummary}
+DJ 힌트: ${djTone}
+요청 길이: ${duration}
+언어: ${config.language === "ko" ? "한국어" : "English"}
+TTS 톤: ${toneDescription(config.tone)}
+첨부 자료 요약: ${attachments.slice(0, 400)}${attachments.length > 400 ? "..." : ""}
 
-  const djTone = djKeywords.length > 0 ? djKeywords.join(", ") : "기본 톤";
-  const duration = length === "continuous" ? "연속 생성" : `${length}분`;
-
-  return `주제: ${topicDescription}
-DJ 톤 힌트: ${djTone}
-길이: ${duration}
-언어: ${language === "ko" ? "한국어" : "English"}
-요청: 위 주제로 3~5개 세그먼트를 구성해 바로 말하기 시작. 각 세그먼트는 1~2분 분량. 
-피드백 신호가 오면 즉시 반영.`;
+지침: 위 정보를 토대로 3~5개 세그먼트로 구성하되, "세그먼트"라는 표현은 절대 사용하지 마세요. 시작하자마자 곧바로 말하고, 실시간 제어 신호가 들어오면 즉시 반영하세요.`;
 }
 
 export function mapDjKeywordsToVoiceStyle(djKeywords: string[]): string {
@@ -75,4 +77,32 @@ export function mapVoiceCommandToControlSignal(command: string): any {
   }
 
   return null;
+}
+
+const toneVoiceMap: Record<TonePreference, { voice: string; description: string }> =
+  {
+    soft: {
+      voice: "verse",
+      description: "부드럽고 따뜻한",
+    },
+    energetic: {
+      voice: "alloy",
+      description: "에너지 넘치는",
+    },
+    calm: {
+      voice: "sol",
+      description: "차분하고 안정적인",
+    },
+    narrative: {
+      voice: "orion",
+      description: "서사형 다큐멘터리 스타일의",
+    },
+  };
+
+export function toneDescription(tone: TonePreference): string {
+  return toneVoiceMap[tone]?.description ?? "자연스러운";
+}
+
+export function toneToVoice(tone: TonePreference): string {
+  return toneVoiceMap[tone]?.voice ?? "alloy";
 }

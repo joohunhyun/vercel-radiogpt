@@ -11,6 +11,13 @@ import { Home, Library, Menu, Radio, Settings, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+const toneLabels: Record<PodcastConfig["tone"], string> = {
+  soft: "부드러운 톤",
+  energetic: "에너지 톤",
+  calm: "차분한 톤",
+  narrative: "서사형 톤",
+};
+
 export default function PlayerPage() {
   const router = useRouter();
   const realtimeRef = useRef<RealtimeConnection | null>(null);
@@ -28,8 +35,23 @@ export default function PlayerPage() {
   const [error, setError] = useState<string | null>(null);
   const [showFrequencyLoader, setShowFrequencyLoader] = useState(false);
 
+  const persistConfig = (nextConfig: PodcastConfig) => {
+    localStorage.setItem("podcast.config", JSON.stringify(nextConfig));
+    return nextConfig;
+  };
+
+  const updateConfigState = (
+    updater: (prev: PodcastConfig) => PodcastConfig
+  ) => {
+    setConfig((prev) => {
+      if (!prev) return prev;
+      const next = updater(prev);
+      persistConfig(next);
+      return next;
+    });
+  };
+
   useEffect(() => {
-    // Load config from localStorage
     const savedConfig = localStorage.getItem("podcast.config");
     if (!savedConfig) {
       console.log("No podcast config found, redirecting to create page");
@@ -37,28 +59,50 @@ export default function PlayerPage() {
       return;
     }
 
-    const parsedConfig = JSON.parse(savedConfig) as PodcastConfig;
-    console.log("Loaded podcast config:", parsedConfig);
-    setConfig(parsedConfig);
-    setActiveKeywords(parsedConfig.contentKeywords);
+    const parsed = JSON.parse(savedConfig) as Partial<PodcastConfig>;
+    const hydrated: PodcastConfig = {
+      topic: parsed.topic || "오늘의 추천 이슈",
+      mode: parsed.mode ?? "keywords",
+      contentKeywords: parsed.contentKeywords ?? [],
+      djKeywords: parsed.djKeywords ?? [],
+      length: parsed.length ?? 10,
+      fileText: parsed.fileText,
+      pdfText: parsed.pdfText,
+      language: parsed.language ?? "ko",
+      tone: parsed.tone ?? "soft",
+    };
+    console.log("Loaded podcast config:", hydrated);
+    setConfig(hydrated);
+    persistConfig(hydrated);
+    setActiveKeywords(hydrated.contentKeywords);
 
-    // Initialize audio systems
-    initializeAudio();
+    initializeAudio(hydrated);
+    return () => {
+      realtimeRef.current?.disconnect();
+      fallbackRef.current?.pause();
+    };
   }, [router]);
 
-  const initializeAudio = async () => {
+  const initializeAudio = async (currentConfig?: PodcastConfig) => {
     try {
       setIsLoading(true);
 
-      // For prototype, we'll use fallback TTS by default
-      // In production, you would try Realtime API first
-      console.log("Initializing audio system...");
+      const activeConfig = currentConfig ?? config;
 
-      // Initialize fallback TTS system
+      if (activeConfig) {
+        realtimeRef.current = new RealtimeConnection();
+        const connected = await realtimeRef.current.connect(activeConfig);
+        if (connected) {
+          setAudioState((prev) => ({ ...prev, isRealtimeMode: true }));
+          console.log("Realtime audio initialized");
+          return;
+        }
+      }
+
+      console.log("Falling back to TTS system...");
+
       fallbackRef.current = new FallbackTTS();
       setAudioState((prev) => ({ ...prev, isRealtimeMode: false }));
-
-      console.log("Fallback TTS system initialized");
     } catch (error) {
       console.error("Audio initialization error:", error);
       setError("오디오 시스템 초기화에 실패했습니다.");
@@ -72,6 +116,29 @@ export default function PlayerPage() {
 
     try {
       console.log("Play/pause clicked, current state:", audioState.isPlaying);
+
+      if (audioState.isRealtimeMode && realtimeRef.current) {
+        if (audioState.isPlaying) {
+          realtimeRef.current.stopListening();
+          setAudioState((prev) => ({
+            ...prev,
+            isPlaying: false,
+            isRecording: false,
+          }));
+        } else {
+          const success = await realtimeRef.current.startListening();
+          if (!success) {
+            setError("마이크를 사용할 수 없습니다.");
+            return;
+          }
+          setAudioState((prev) => ({
+            ...prev,
+            isPlaying: true,
+            isRecording: true,
+          }));
+        }
+        return;
+      }
 
       if (fallbackRef.current) {
         // Fallback mode
@@ -138,6 +205,10 @@ export default function PlayerPage() {
 
   const handleKeywordRemove = (keyword: string) => {
     setActiveKeywords((prev) => prev.filter((k) => k !== keyword));
+    updateConfigState((prev) => ({
+      ...prev,
+      contentKeywords: prev.contentKeywords.filter((k) => k !== keyword),
+    }));
     sendControlSignal({ type: "topic.remove", value: keyword });
   };
 
@@ -208,13 +279,15 @@ export default function PlayerPage() {
             <Radio className="w-16 h-16 text-gray-500" />
           </div>
           <h2 className="text-xl font-semibold text-center text-gray-900 mb-2">
-            {config.mode === "file"
-              ? "파일 기반 팟캐스트"
-              : "키워드 기반 팟캐스트"}
+            {config.topic}
           </h2>
-          <p className="text-gray-600 text-center">
-            {config.contentKeywords.join(", ")}
-          </p>
+          <div className="text-sm text-gray-600 text-center space-y-1">
+            <p>길이: {formatLength(config.length)}</p>
+            <p>TTS 톤: {toneLabel(config.tone)}</p>
+            {config.contentKeywords.length > 0 && (
+              <p>{config.contentKeywords.join(", ")}</p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -353,4 +426,23 @@ export default function PlayerPage() {
       </div>
     </div>
   );
+}
+
+function toneLabel(tone: PodcastConfig["tone"]) {
+  return toneLabels[tone] ?? "기본 톤";
+}
+
+function formatLength(length: PodcastConfig["length"]) {
+  switch (length) {
+    case 5:
+      return "약 5분";
+    case 10:
+      return "약 10분";
+    case 30:
+      return "약 30분";
+    case 60:
+      return "약 1시간";
+    default:
+      return "연속 생성";
+  }
 }

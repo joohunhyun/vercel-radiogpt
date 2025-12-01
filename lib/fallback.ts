@@ -1,5 +1,5 @@
 import type { ControlSignal, PodcastConfig } from "@/types";
-import { SYSTEM_BASE_PROMPT, buildUserPlan } from "./prompts";
+import { SYSTEM_BASE_PROMPT, buildUserPlan, toneToVoice } from "./prompts";
 
 export class FallbackTTS {
   private audioElement: HTMLAudioElement;
@@ -45,7 +45,7 @@ export class FallbackTTS {
         },
         body: JSON.stringify({
           text,
-          voice: "nova", // Better for Korean speech
+          voice: toneToVoice(config.tone),
         }),
       });
 
@@ -146,7 +146,7 @@ export class FallbackTTS {
         },
         body: JSON.stringify({
           text,
-          voice: "nova", // Better for Korean speech
+          voice: toneToVoice(this.currentConfig.tone),
         }),
       });
 

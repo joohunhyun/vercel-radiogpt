@@ -1,9 +1,12 @@
-import type { ControlSignal, RealtimeSession } from "@/types";
+import type { ControlSignal, PodcastConfig, RealtimeSession } from "@/types";
+
+const REALTIME_MODEL = "gpt-4o-realtime-preview-2024-12-17";
 
 export class RealtimeConnection {
-  private ws: WebSocket | null = null;
   private peerConnection: RTCPeerConnection | null = null;
-  private audioContext: AudioContext | null = null;
+  private dataChannel: RTCDataChannel | null = null;
+  private microphoneStream: MediaStream | null = null;
+  private remoteStream: MediaStream | null = null;
   private audioElement: HTMLAudioElement | null = null;
   private isConnected = false;
   private session: RealtimeSession | null = null;
@@ -13,120 +16,129 @@ export class RealtimeConnection {
     this.audioElement.crossOrigin = "anonymous";
   }
 
-  async connect(session: RealtimeSession): Promise<boolean> {
+  async connect(config: PodcastConfig): Promise<boolean> {
     try {
-      this.session = session;
+      const sessionResponse = await fetch("/api/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config }),
+      });
 
-      // Create WebSocket connection
-      this.ws = new WebSocket(
-        `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01&client_secret=${session.token}`
-      );
-
-      this.ws.onopen = () => {
-        console.log("Realtime WebSocket connected");
-        this.isConnected = true;
-      };
-
-      this.ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        this.handleRealtimeMessage(data);
-      };
-
-      this.ws.onerror = (error) => {
-        console.error("Realtime WebSocket error:", error);
-        this.isConnected = false;
-      };
-
-      this.ws.onclose = () => {
-        console.log("Realtime WebSocket closed");
-        this.isConnected = false;
-      };
-
-      // Set up audio context
-      this.audioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
-
-      return true;
-    } catch (error) {
-      console.error("Failed to connect to Realtime API:", error);
-      return false;
-    }
-  }
-
-  private handleRealtimeMessage(data: any) {
-    switch (data.type) {
-      case "response.audio.delta":
-        this.playAudioChunk(data.delta);
-        break;
-      case "response.done":
-        console.log("Response completed");
-        break;
-      case "error":
-        console.error("Realtime error:", data.error);
-        break;
-    }
-  }
-
-  private async playAudioChunk(audioData: string) {
-    if (!this.audioContext || !this.audioElement) return;
-
-    try {
-      // Convert base64 audio to ArrayBuffer
-      const binaryString = atob(audioData);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
+      if (!sessionResponse.ok) {
+        throw new Error("세션을 생성하지 못했습니다.");
       }
 
-      // Create audio buffer and play
-      const audioBuffer = await this.audioContext.decodeAudioData(bytes.buffer);
-      const source = this.audioContext.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(this.audioContext.destination);
-      source.start();
+      const session = (await sessionResponse.json()) as RealtimeSession;
+      this.session = session;
+
+      this.peerConnection = new RTCPeerConnection({
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+      });
+
+      this.remoteStream = new MediaStream();
+      if (this.audioElement) {
+        this.audioElement.srcObject = this.remoteStream;
+        this.audioElement.play().catch(() => {
+          /* autoplay restrictions */
+        });
+      }
+
+      this.peerConnection.ontrack = (event) => {
+        event.streams[0].getTracks().forEach((track) => {
+          this.remoteStream?.addTrack(track);
+        });
+      };
+
+      this.peerConnection.onconnectionstatechange = () => {
+        const state = this.peerConnection?.connectionState;
+        console.log("Realtime connection state:", state);
+        this.isConnected = state === "connected";
+      };
+
+      this.dataChannel = this.peerConnection.createDataChannel("oai-events");
+      this.dataChannel.onopen = () => {
+        // prime the model to start talking immediately
+        this.dataChannel?.send(
+          JSON.stringify({
+            type: "response.create",
+          })
+        );
+      };
+      this.dataChannel.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "response.completed") {
+            console.log("Realtime response completed");
+          }
+        } catch {
+          console.log("Realtime message:", event.data);
+        }
+      };
+
+      // Ensure we can both send and receive audio
+      this.peerConnection.addTransceiver("audio", { direction: "sendrecv" });
+
+      const offer = await this.peerConnection.createOffer();
+      await this.peerConnection.setLocalDescription(offer);
+
+      const sdpResponse = await fetch(
+        `https://api.openai.com/v1/realtime?model=${REALTIME_MODEL}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.clientSecret}`,
+            "Content-Type": "application/sdp",
+            "OpenAI-Beta": "realtime=v1",
+          },
+          body: offer.sdp,
+        }
+      );
+
+      if (!sdpResponse.ok) {
+        const errText = await sdpResponse.text();
+        throw new Error(`SDP exchange failed: ${errText}`);
+      }
+
+      const answer = await sdpResponse.text();
+      await this.peerConnection.setRemoteDescription({
+        type: "answer",
+        sdp: answer,
+      });
+
+      this.isConnected = true;
+      return true;
     } catch (error) {
-      console.error("Audio playback error:", error);
+      console.error("Failed to initialize realtime connection:", error);
+      this.disconnect();
+      return false;
     }
   }
 
   async startListening(): Promise<boolean> {
+    if (!this.peerConnection) return false;
+    if (this.microphoneStream) return true;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      if (this.ws && this.isConnected) {
-        // Send audio data to Realtime API
-        const mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.ondataavailable = (event) => {
-          if (this.ws && this.isConnected) {
-            const reader = new FileReader();
-            reader.onload = () => {
-              const arrayBuffer = reader.result as ArrayBuffer;
-              const uint8Array = new Uint8Array(arrayBuffer);
-              const base64 = btoa(
-                String.fromCharCode.apply(null, Array.from(uint8Array))
-              );
-              this.ws!.send(
-                JSON.stringify({
-                  type: "input_audio_buffer.append",
-                  audio: base64,
-                })
-              );
-            };
-            reader.readAsArrayBuffer(event.data);
-          }
-        };
-        mediaRecorder.start(100); // Send audio every 100ms
-      }
-
+      this.microphoneStream = stream;
+      stream.getTracks().forEach((track) => {
+        this.peerConnection?.addTrack(track, stream);
+      });
       return true;
     } catch (error) {
-      console.error("Failed to start listening:", error);
+      console.error("Failed to access microphone:", error);
       return false;
     }
   }
 
+  stopListening() {
+    if (this.microphoneStream) {
+      this.microphoneStream.getTracks().forEach((track) => track.stop());
+      this.microphoneStream = null;
+    }
+  }
+
   sendControlSignal(signal: ControlSignal) {
-    if (!this.ws || !this.isConnected) return;
+    if (!this.dataChannel || this.dataChannel.readyState !== "open") return;
 
     let message: any = {};
 
@@ -233,18 +245,23 @@ export class RealtimeConnection {
         break;
     }
 
-    this.ws.send(JSON.stringify(message));
+    this.dataChannel.send(JSON.stringify(message));
   }
 
   disconnect() {
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
+    this.stopListening();
+    if (this.dataChannel) {
+      this.dataChannel.close();
+      this.dataChannel = null;
     }
-    if (this.audioContext) {
-      this.audioContext.close();
-      this.audioContext = null;
+    if (this.peerConnection) {
+      this.peerConnection.getSenders().forEach((sender) => {
+        sender.track?.stop();
+      });
+      this.peerConnection.close();
+      this.peerConnection = null;
     }
+    this.remoteStream = null;
     this.isConnected = false;
   }
 

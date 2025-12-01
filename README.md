@@ -4,8 +4,9 @@
 
 ## 🚀 Features
 
-- **Personalized Podcast Generation**: Create AI podcasts based on keywords or file uploads
+- **Personalized Podcast Generation**: Create AI podcasts based on keywords, PDF excerpts, and user-defined topics
 - **Real-time Voice Interaction**: OpenAI Realtime API with WebRTC for live voice control
+- **LangChain Prompt Orchestration**: Dynamic instruction building via LangChain + GPT-4o-mini
 - **Fallback TTS System**: Automatic fallback to OpenAI TTS when Realtime API is unavailable
 - **Interactive Controls**: Real-time feedback buttons and voice commands
 - **Korean Language Support**: Full Korean interface and voice generation
@@ -16,7 +17,7 @@
 - **Framework**: Next.js 14+ (App Router)
 - **Language**: TypeScript
 - **Styling**: TailwindCSS
-- **AI Integration**: OpenAI GPT-4o Realtime API + TTS
+- **AI Integration**: LangChain + OpenAI GPT-4o Realtime API + TTS
 - **Deployment**: Vercel (Edge Runtime)
 - **Audio**: WebAudio API + HTML5 Audio
 
@@ -72,10 +73,10 @@ Make sure to set the `OPENAI_API_KEY` environment variable in your Vercel projec
 ### `/create`
 
 - Podcast configuration page
-- Keyword-based or file-based generation
-- Tag input with removable chips
+- Topic input + keyword + DJ hint management
+- Tone picker for the TTS module
 - Length slider (5min, 10min, 30min, 1hr, continuous)
-- File upload support (.txt, .md files)
+- File upload support (.txt, .md) and PDF extraction via BeautifulSoup
 
 ### `/player`
 
@@ -84,11 +85,13 @@ Make sure to set the `OPENAI_API_KEY` environment variable in your Vercel projec
 - Interactive feedback buttons
 - Active keyword management
 - Progress tracking
+- Frequency-based loading animation while GPT-4o + TTS stream initializes
 
 ## 🎛 API Routes
 
-### `/api/session` (Edge Runtime)
+### `/api/session` (Node runtime)
 
+- Uses LangChain to craft personalized instructions
 - Creates ephemeral OpenAI Realtime API sessions
 - Returns session credentials for WebRTC connection
 
@@ -101,6 +104,12 @@ Make sure to set the `OPENAI_API_KEY` environment variable in your Vercel projec
 
 - Text-to-speech conversion using OpenAI TTS
 - Supports multiple voice options
+
+### `/api/extract-pdf`
+
+- Accepts PDF uploads
+- Uses pdf-parse + BeautifulSoup style parsing to extract clean text
+- Returns normalized text for prompt injection
 
 ## 🎵 Audio Systems
 
@@ -147,19 +156,24 @@ Make sure to set the `OPENAI_API_KEY` environment variable in your Vercel projec
 ## 📊 Data Model
 
 ```typescript
+type TonePreference = "soft" | "energetic" | "calm" | "narrative";
+
 type PodcastConfig = {
-  mode: "keywords" | "file";
+  topic: string;
+  mode: "keywords" | "file" | "pdf";
   contentKeywords: string[];
   djKeywords: string[];
   length: 5 | 10 | 30 | 60 | "continuous";
   fileText?: string;
+  pdfText?: string;
   language: "ko" | "en";
+  tone: TonePreference;
 };
 ```
 
 ## 🔧 Known Limitations
 
-1. **PDF Parsing**: PDF files show "Parsing not supported in prototype"
+1. **PDF Parsing**: Extraction is best-effort; complex layouts may be simplified
 2. **No Persistent Database**: Uses localStorage for prototype state
 3. **Limited Voice Commands**: Basic keyword matching for voice commands
 4. **No User Authentication**: Pseudo login system for prototype
@@ -181,6 +195,10 @@ type PodcastConfig = {
 ### Default DJ Keywords
 
 - 여성, 강연, 부드러운
+
+### Default Tone
+
+- 부드러운 (soft)
 
 ### Default Length
 
