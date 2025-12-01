@@ -73,7 +73,7 @@ Make sure to set the `OPENAI_API_KEY` environment variable in your Vercel projec
 ### `/create`
 
 - Podcast configuration page
-- Topic input + keyword + DJ hint management
+- Topic input + comma-separated keyword field (no defaults)
 - Tone picker for the TTS module
 - Length slider (5min, 10min, 30min, 1hr, continuous)
 - File upload support (.txt, .md) and PDF extraction via BeautifulSoup
@@ -162,7 +162,6 @@ type PodcastConfig = {
   topic: string;
   mode: "keywords" | "file" | "pdf";
   contentKeywords: string[];
-  djKeywords: string[];
   length: 5 | 10 | 30 | 60 | "continuous";
   fileText?: string;
   pdfText?: string;
@@ -191,10 +190,6 @@ type PodcastConfig = {
 ### Default Content Keywords
 
 - 음악, 영국, R&B, 심리, 심리·정신
-
-### Default DJ Keywords
-
-- 여성, 강연, 부드러운
 
 ### Default Tone
 

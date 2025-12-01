@@ -1,6 +1,5 @@
 "use client";
 
-import TagInput from "@/components/TagInput";
 import type { PodcastConfig, TonePreference } from "@/types";
 import {
   FileText,
@@ -12,34 +11,34 @@ import {
   Upload,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+
+const parseKeywords = (value: string) =>
+  value
+    .split(",")
+    .map((keyword) => keyword.trim())
+    .filter(Boolean);
 
 export default function CreatePage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
-  const [topic, setTopic] = useState("오늘의 경제 뉴스");
+  const [topic, setTopic] = useState("");
   const [mode, setMode] = useState<"keywords" | "file" | "pdf">("keywords");
-  const [contentKeywords, setContentKeywords] = useState<string[]>([
-    "음악",
-    "영국",
-    "R&B",
-    "심리",
-    "심리·정신",
-  ]);
-  const [djKeywords, setDjKeywords] = useState<string[]>([
-    "여성",
-    "강연",
-    "부드러운",
-    "심리·정신",
-  ]);
+  const [contentInput, setContentInput] = useState("");
+  const [contentKeywords, setContentKeywords] = useState<string[]>([]);
   const [length, setLength] = useState<5 | 10 | 30 | 60 | "continuous">(10);
   const [tone, setTone] = useState<TonePreference>("soft");
   const [fileText, setFileText] = useState<string>("");
   const [pdfText, setPdfText] = useState<string>("");
   const [pdfDetails, setPdfDetails] = useState<{ pages?: number } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  const updateContentKeywords = useCallback((value: string) => {
+    setContentInput(value);
+    setContentKeywords(parseKeywords(value));
+  }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -95,10 +94,9 @@ export default function CreatePage() {
 
   const handleStart = () => {
     const config: PodcastConfig = {
-      topic,
+      topic: topic.trim() || "오늘의 추천 이슈",
       mode,
       contentKeywords,
-      djKeywords,
       length,
       fileText: mode === "file" ? fileText : undefined,
       pdfText: mode === "pdf" ? pdfText : undefined,
@@ -261,26 +259,30 @@ export default function CreatePage() {
 
         {/* Content Keywords */}
         <div className="mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
             컨텐츠 키워드 설정
           </h3>
-          <TagInput
-            tags={contentKeywords}
-            onTagsChange={setContentKeywords}
+          <p className="text-sm text-gray-500 mb-3">
+            콤마(,)로 키워드를 구분해 입력하세요. 예: 음악, 영국, 심리
+          </p>
+          <textarea
+            value={contentInput}
+            onChange={(e) => updateContentKeywords(e.target.value)}
             placeholder="키워드를 입력하세요"
+            className="w-full min-h-[96px] px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-black focus:border-transparent outline-none transition-all"
           />
-        </div>
-
-        {/* DJ Keywords */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            DJ 키워드 설정
-          </h3>
-          <TagInput
-            tags={djKeywords}
-            onTagsChange={setDjKeywords}
-            placeholder="키워드를 입력하세요"
-          />
+          {contentKeywords.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {contentKeywords.map((keyword, index) => (
+                <span
+                  key={`${keyword}-${index}`}
+                  className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
+                >
+                  {keyword}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* TTS Tone */}

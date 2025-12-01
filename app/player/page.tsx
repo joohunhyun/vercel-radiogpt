@@ -64,7 +64,6 @@ export default function PlayerPage() {
       topic: parsed.topic || "오늘의 추천 이슈",
       mode: parsed.mode ?? "keywords",
       contentKeywords: parsed.contentKeywords ?? [],
-      djKeywords: parsed.djKeywords ?? [],
       length: parsed.length ?? 10,
       fileText: parsed.fileText,
       pdfText: parsed.pdfText,

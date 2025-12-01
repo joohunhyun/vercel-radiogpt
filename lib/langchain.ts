@@ -11,7 +11,6 @@ const instructionTemplate = `
 - 주제: {topic}
 - 원하는 길이: {lengthDescription}
 - 키워드: {keywordList}
-- DJ 톤 힌트: {djKeywords}
 - TTS 톤: {toneLabel}
 - 참고 자료: {sourceSummary}
 
@@ -66,9 +65,6 @@ export async function generateRealtimeInstructions(
       ? config.contentKeywords.join(", ")
       : "사용자 지정 없음";
 
-  const djHints =
-    config.djKeywords.length > 0 ? config.djKeywords.join(", ") : "기본 힌트";
-
   const sourceSummary =
     config.pdfText ?? config.fileText ?? "추가 참고 자료 없음";
 
@@ -76,7 +72,6 @@ export async function generateRealtimeInstructions(
     topic: config.topic || "오늘의 추천 이슈",
     lengthDescription: lengthLabels[config.length],
     keywordList,
-    djKeywords: djHints,
     toneLabel: toneLabels[config.tone],
     sourceSummary: truncateSource(sourceSummary),
   });

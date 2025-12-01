@@ -26,7 +26,6 @@ export async function POST(request: NextRequest) {
       topic: config.topic || "오늘의 추천 이슈",
       mode: config.mode ?? "keywords",
       contentKeywords: config.contentKeywords ?? [],
-      djKeywords: config.djKeywords ?? [],
       length: config.length ?? 10,
       fileText: config.fileText,
       pdfText: config.pdfText,

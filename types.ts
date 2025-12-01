@@ -4,7 +4,6 @@ export type PodcastConfig = {
   topic: string;
   mode: "keywords" | "file" | "pdf";
   contentKeywords: string[];
-  djKeywords: string[];
   length: 5 | 10 | 30 | 60 | "continuous";
   fileText?: string;
   pdfText?: string;
