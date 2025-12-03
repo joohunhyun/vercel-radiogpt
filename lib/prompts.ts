@@ -71,11 +71,11 @@ const toneVoiceMap: Record<
     description: "에너지 넘치는",
   },
   calm: {
-    voice: "sol",
+    voice: "marin",
     description: "차분하고 안정적인",
   },
   narrative: {
-    voice: "orion",
+    voice: "cedar",
     description: "서사형 다큐멘터리 스타일의",
   },
 };
