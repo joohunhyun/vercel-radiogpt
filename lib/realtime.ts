@@ -11,13 +11,20 @@ export class RealtimeConnection {
   private isConnected = false;
   private session: RealtimeSession | null = null;
 
+  // 생성자에서 Audio 객체 생성 주석 처리 
   constructor() {
-    this.audioElement = new Audio();
-    this.audioElement.crossOrigin = "anonymous";
+    //this.audioElement = new Audio();
+    //this.audioElement.crossOrigin = "anonymous";
   }
 
   async connect(config: PodcastConfig): Promise<boolean> {
+    //Audio 객체는 브라우저 환경에서만 생성
     try {
+      if (typeof window !== "undefined" && !this.audioElement) {
+        this.audioElement = new Audio();
+        this.audioElement.crossOrigin = "anonymous";
+      }
+
       const sessionResponse = await fetch("/api/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -176,9 +183,8 @@ export class RealtimeConnection {
             content: [
               {
                 type: "input_text",
-                text: `내용 깊이 조정: ${
-                  signal.value === "deeper" ? "더 깊게" : "더 쉽게"
-                }`,
+                text: `내용 깊이 조정: ${signal.value === "deeper" ? "더 깊게" : "더 쉽게"
+                  }`,
               },
             ],
           },
@@ -193,9 +199,8 @@ export class RealtimeConnection {
             content: [
               {
                 type: "input_text",
-                text: `속도 조정: ${
-                  signal.value === "faster" ? "빨리" : "느리게"
-                }`,
+                text: `속도 조정: ${signal.value === "faster" ? "빨리" : "느리게"
+                  }`,
               },
             ],
           },
@@ -210,9 +215,8 @@ export class RealtimeConnection {
             content: [
               {
                 type: "input_text",
-                text: `톤 조정: ${
-                  signal.value === "softer" ? "부드럽게" : "에너지 있게"
-                }`,
+                text: `톤 조정: ${signal.value === "softer" ? "부드럽게" : "에너지 있게"
+                  }`,
               },
             ],
           },

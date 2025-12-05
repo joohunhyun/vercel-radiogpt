@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function POST(request: NextRequest) {
   try {
     const { text, voice = "alloy" } = await request.json();
@@ -15,6 +11,10 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     const mp3 = await openai.audio.speech.create({
       model: "tts-1-hd", // Use HD model for better quality

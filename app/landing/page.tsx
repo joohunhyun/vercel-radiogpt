@@ -1,24 +1,11 @@
 "use client";
 
 import { ArrowRight, Mic, Play, Radio, Sparkles, Zap } from "lucide-react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 
 export default function LandingPage() {
-  const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
-
-  const handleLogin = () => {
-    router.push("/login");
-  };
-
-  const handleRegister = () => {
-    router.push("/login");
-  };
-
-  const handleGetStarted = () => {
-    router.push("/login");
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
@@ -30,18 +17,18 @@ export default function LandingPage() {
             <span className="text-2xl font-bold text-black">RadioGPT</span>
           </div>
           <div className="flex items-center space-x-4">
-            <button
-              onClick={handleLogin}
+            <Link
+              href="/login"
               className="px-4 py-2 text-gray-700 hover:text-black transition-colors"
             >
               로그인
-            </button>
-            <button
-              onClick={handleRegister}
+            </Link>
+            <Link
+              href="/login"
               className="px-6 py-2 bg-black text-white rounded-full hover:bg-gray-800 transition-colors"
             >
               시작하기
-            </button>
+            </Link>
           </div>
         </div>
       </nav>
@@ -68,8 +55,8 @@ export default function LandingPage() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-            <button
-              onClick={handleGetStarted}
+            <Link
+              href="/login"
               className="group px-8 py-4 bg-black text-white rounded-full text-lg font-semibold hover:bg-gray-800 transition-all duration-300 flex items-center space-x-2"
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
@@ -77,11 +64,10 @@ export default function LandingPage() {
               <Play className="w-5 h-5" />
               <span>지금 시작하기</span>
               <ArrowRight
-                className={`w-5 h-5 transition-transform ${
-                  isHovered ? "translate-x-1" : ""
-                }`}
+                className={`w-5 h-5 transition-transform ${isHovered ? "translate-x-1" : ""
+                  }`}
               />
-            </button>
+            </Link>
             <button className="px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-full text-lg font-semibold hover:border-black hover:text-black transition-all duration-300">
               데모 보기
             </button>
@@ -210,12 +196,12 @@ export default function LandingPage() {
             <p className="text-gray-600 mb-8 text-lg">
               몇 분 안에 당신만의 AI 팟캐스트를 만들어보세요
             </p>
-            <button
-              onClick={handleGetStarted}
-              className="px-8 py-4 bg-black text-white rounded-full text-lg font-semibold hover:bg-gray-800 transition-colors"
+            <Link
+              href="/login"
+              className="inline-block px-8 py-4 bg-black text-white rounded-full text-lg font-semibold hover:bg-gray-800 transition-colors"
             >
               무료로 시작하기
-            </button>
+            </Link>
           </div>
         </div>
       </div>

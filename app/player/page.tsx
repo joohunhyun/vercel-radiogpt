@@ -10,6 +10,7 @@ import type { AudioState, ControlSignal, PodcastConfig } from "@/types";
 import { Home, Library, Menu, Radio, Settings, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 const toneLabels: Record<PodcastConfig["tone"], string> = {
   soft: "부드러운 톤",
@@ -104,7 +105,9 @@ export default function PlayerPage() {
       setAudioState((prev) => ({ ...prev, isRealtimeMode: false }));
     } catch (error) {
       console.error("Audio initialization error:", error);
-      setError("오디오 시스템 초기화에 실패했습니다.");
+      const msg = "오디오 시스템 초기화에 실패했습니다.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
@@ -127,9 +130,21 @@ export default function PlayerPage() {
         } else {
           const success = await realtimeRef.current.startListening();
           if (!success) {
-            setError("마이크를 사용할 수 없습니다.");
+            const msg = "마이크를 사용할 수 없습니다.";
+            setError(msg);
+            toast.error(msg);
             return;
           }
+
+          // Save to history
+          fetch("/api/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              topic: config.topic,
+            }),
+          }).catch(console.error);
+
           setAudioState((prev) => ({
             ...prev,
             isPlaying: true,
@@ -156,7 +171,9 @@ export default function PlayerPage() {
 
             const success = await fallbackRef.current.generatePodcast(config);
             if (!success) {
-              setError("팟캐스트 생성에 실패했습니다.");
+              const msg = "팟캐스트 생성에 실패했습니다.";
+              setError(msg);
+              toast.error(msg);
               setShowFrequencyLoader(false);
               return;
             }
@@ -167,14 +184,16 @@ export default function PlayerPage() {
           console.log("Audio started successfully");
         }
       } else {
-        setError("오디오 시스템이 초기화되지 않았습니다.");
+        const msg = "오디오 시스템이 초기화되지 않았습니다.";
+        setError(msg);
+        toast.error(msg);
       }
     } catch (error) {
       console.error("Play/pause error:", error);
-      setError(
-        "재생 중 오류가 발생했습니다: " +
-          (error instanceof Error ? error.message : String(error))
-      );
+      const msg = "재생 중 오류가 발생했습니다: " +
+        (error instanceof Error ? error.message : String(error));
+      setError(msg);
+      toast.error(msg);
     }
   };
 
@@ -236,7 +255,7 @@ export default function PlayerPage() {
 
       return () => {
         fallbackRef.current?.removeEventListener("timeupdate", updateTime);
-        fallbackRef.current?.removeEventListener("ended", () => {});
+        fallbackRef.current?.removeEventListener("ended", () => { });
       };
     }
   }, [audioState.isRealtimeMode]);
@@ -406,7 +425,10 @@ export default function PlayerPage() {
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
         <div className="flex items-center justify-around py-4">
-          <button className="p-2 text-gray-400">
+          <button
+            onClick={() => router.push("/create")}
+            className="p-2 text-gray-400 hover:text-black transition-colors"
+          >
             <Home className="w-6 h-6" />
           </button>
           <button className="p-2 text-black">
@@ -415,7 +437,10 @@ export default function PlayerPage() {
           <button className="p-2 text-gray-400">
             <Settings className="w-6 h-6" />
           </button>
-          <button className="p-2 text-gray-400">
+          <button
+            onClick={() => router.push("/history")}
+            className="p-2 text-gray-400 hover:text-black transition-colors"
+          >
             <Library className="w-6 h-6" />
           </button>
           <button className="p-2 text-gray-400">

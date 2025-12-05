@@ -6,10 +6,6 @@ import OpenAI from "openai";
 
 export const runtime = "nodejs";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function POST(request: NextRequest) {
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -18,6 +14,10 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     const body = await request.json().catch(() => ({}));
     const config = (body?.config ?? {}) as Partial<PodcastConfig>;

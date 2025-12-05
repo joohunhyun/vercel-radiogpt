@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
 
 const parseKeywords = (value: string) =>
   value
@@ -54,7 +55,7 @@ export default function CreatePage() {
       setMode("file");
     } catch (error) {
       console.error("File reading error:", error);
-      alert("파일을 읽는 중 오류가 발생했습니다.");
+      toast.error("파일을 읽는 중 오류가 발생했습니다.");
     } finally {
       setIsUploading(false);
     }
@@ -86,7 +87,7 @@ export default function CreatePage() {
       setMode("pdf");
     } catch (error) {
       console.error("PDF upload error:", error);
-      alert("PDF 내용을 추출하는 중 오류가 발생했습니다.");
+      toast.error("PDF 내용을 추출하는 중 오류가 발생했습니다.");
     } finally {
       setIsUploading(false);
     }
@@ -144,31 +145,28 @@ export default function CreatePage() {
         <div className="flex mb-8">
           <button
             onClick={() => setMode("keywords")}
-            className={`flex-1 py-3 px-4 text-center font-medium rounded-l-xl border ${
-              mode === "keywords"
-                ? "bg-black text-white border-black"
-                : "bg-white text-gray-700 border-gray-300"
-            }`}
+            className={`flex-1 py-3 px-4 text-center font-medium rounded-l-xl border ${mode === "keywords"
+              ? "bg-black text-white border-black"
+              : "bg-white text-gray-700 border-gray-300"
+              }`}
           >
             키워드로 생성
           </button>
           <button
             onClick={() => setMode("file")}
-            className={`flex-1 py-3 px-4 text-center font-medium border ${
-              mode === "file"
-                ? "bg-black text-white border-black"
-                : "bg-white text-gray-700 border-gray-300"
-            }`}
+            className={`flex-1 py-3 px-4 text-center font-medium border ${mode === "file"
+              ? "bg-black text-white border-black"
+              : "bg-white text-gray-700 border-gray-300"
+              }`}
           >
             텍스트 파일
           </button>
           <button
             onClick={() => setMode("pdf")}
-            className={`flex-1 py-3 px-4 text-center font-medium rounded-r-xl border ${
-              mode === "pdf"
-                ? "bg-black text-white border-black"
-                : "bg-white text-gray-700 border-gray-300"
-            }`}
+            className={`flex-1 py-3 px-4 text-center font-medium rounded-r-xl border ${mode === "pdf"
+              ? "bg-black text-white border-black"
+              : "bg-white text-gray-700 border-gray-300"
+              }`}
           >
             PDF 파일
           </button>
@@ -301,11 +299,10 @@ export default function CreatePage() {
                 key={option.value}
                 type="button"
                 onClick={() => setTone(option.value as TonePreference)}
-                className={`py-3 px-4 rounded-xl border ${
-                  tone === option.value
-                    ? "bg-black text-white border-black"
-                    : "border-gray-300 text-gray-700"
-                }`}
+                className={`py-3 px-4 rounded-xl border ${tone === option.value
+                  ? "bg-black text-white border-black"
+                  : "border-gray-300 text-gray-700"
+                  }`}
               >
                 {option.label}
               </button>
