@@ -116,8 +116,27 @@ export default function PlayerPage() {
   const handlePlayPause = async () => {
     if (!config) return;
 
+    if (isLoading) {
+      toast.info("오디오 시스템을 초기화 중입니다. 잠시만 기다려주세요.");
+      return;
+    }
+
     try {
       console.log("Play/pause clicked, current state:", audioState.isPlaying);
+
+      // Retry initialization if audio system is not ready
+      if (!audioState.isRealtimeMode && !fallbackRef.current) {
+        console.log("Audio system not initialized, retrying...");
+        await initializeAudio(config);
+        if (!fallbackRef.current && !audioState.isRealtimeMode) {
+          // Still failing after retry
+          return;
+        }
+        // If successful, continue execution (user might need to click again or we can auto-play? 
+        // Let's return and let user click again to avoid recursive mess or just continue if initialized).
+        // Since initializeAudio updates state and Refs, safe to continue if Refs are set.
+        if (!fallbackRef.current && !realtimeRef.current) return;
+      }
 
       if (audioState.isRealtimeMode && realtimeRef.current) {
         if (audioState.isPlaying) {
@@ -169,6 +188,12 @@ export default function PlayerPage() {
             console.log("Generating new podcast...");
             setShowFrequencyLoader(true);
 
+            // Double check config is valid before generating
+            if (!config) {
+              setShowFrequencyLoader(false);
+              return;
+            }
+
             const success = await fallbackRef.current.generatePodcast(config);
             if (!success) {
               const msg = "팟캐스트 생성에 실패했습니다.";
@@ -187,6 +212,8 @@ export default function PlayerPage() {
         const msg = "오디오 시스템이 초기화되지 않았습니다.";
         setError(msg);
         toast.error(msg);
+        // Attempt to re-initialize for next click
+        initializeAudio(config);
       }
     } catch (error) {
       console.error("Play/pause error:", error);
@@ -276,7 +303,6 @@ export default function PlayerPage() {
       {/* Frequency Loader */}
       <FrequencyLoader
         isVisible={showFrequencyLoader}
-        onComplete={() => setShowFrequencyLoader(false)}
       />
 
       {/* Header */}
@@ -423,7 +449,7 @@ export default function PlayerPage() {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
         <div className="flex items-center justify-around py-4">
           <button
             onClick={() => router.push("/create")}

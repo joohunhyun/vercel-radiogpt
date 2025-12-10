@@ -4,12 +4,10 @@ import { useEffect, useState } from "react";
 
 interface FrequencyLoaderProps {
   isVisible: boolean;
-  onComplete?: () => void;
 }
 
 export default function FrequencyLoader({
   isVisible,
-  onComplete,
 }: FrequencyLoaderProps) {
   const [animationPhase, setAnimationPhase] = useState(0);
 
@@ -23,21 +21,12 @@ export default function FrequencyLoader({
     return () => clearInterval(interval);
   }, [isVisible]);
 
-  useEffect(() => {
-    if (isVisible && onComplete) {
-      // Simulate completion after 3-5 seconds
-      const timer = setTimeout(() => {
-        onComplete();
-      }, 4000);
 
-      return () => clearTimeout(timer);
-    }
-  }, [isVisible, onComplete]);
 
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-white z-[100] flex items-center justify-center">
       {/* Status Bar */}
       <div className="absolute top-0 left-0 right-0 h-8 bg-white flex items-center justify-between px-6 text-black">
         <span className="text-sm font-medium">9:41</span>
@@ -77,9 +66,8 @@ export default function FrequencyLoader({
             className="absolute top-0 bottom-0 w-1 bg-red-500 rounded-full transition-all duration-600 ease-in-out"
             style={{
               left: `${25 + Math.sin((animationPhase * Math.PI) / 4) * 30}%`,
-              transform: `translateX(${
-                Math.sin((animationPhase * Math.PI) / 2) * 15
-              }px)`,
+              transform: `translateX(${Math.sin((animationPhase * Math.PI) / 2) * 15
+                }px)`,
               boxShadow: "0 0 8px rgba(239, 68, 68, 0.6)",
             }}
           />

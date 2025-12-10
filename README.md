@@ -1,4 +1,4 @@
-# RadioGPT - AI Podcast Generator
+# Jupa - AI Podcast Generator
 
 사용자 맞춤형 AI 팟캐스트 생성 및 실시간 피드백 반영 서비스
 
@@ -33,7 +33,7 @@
 
 ```bash
 git clone <repository-url>
-cd cursor-radiogpt
+cd jupa
 npm install
 ```
 

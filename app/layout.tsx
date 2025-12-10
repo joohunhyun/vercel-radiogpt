@@ -6,6 +6,11 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
+export const metadata: Metadata = {
+  title: "Jupa",
+  description: "AI Podcast Generator",
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -16,7 +21,7 @@ export default function RootLayout({
       <html lang="ko">
         <body className={inter.className}>
           <div className="min-h-screen bg-gray-50 flex justify-center">
-            <div className="w-full max-w-[480px] bg-white min-h-screen shadow-xl">
+            <div className="w-full max-w-7xl bg-white min-h-screen shadow-xl">
               {children}
             </div>
           </div>

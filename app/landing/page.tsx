@@ -14,18 +14,18 @@ export default function LandingPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Radio className="w-8 h-8 text-black" />
-            <span className="text-2xl font-bold text-black">RadioGPT</span>
+            <span className="text-2xl font-bold text-black">Jupa</span>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             <Link
               href="/login"
-              className="px-4 py-2 text-gray-700 hover:text-black transition-colors"
+              className="px-3 py-2 text-sm sm:text-base text-gray-700 hover:text-black transition-colors whitespace-nowrap"
             >
               로그인
             </Link>
             <Link
               href="/login"
-              className="px-6 py-2 bg-black text-white rounded-full hover:bg-gray-800 transition-colors"
+              className="px-4 py-2 text-sm sm:text-base bg-black text-white rounded-full hover:bg-gray-800 transition-colors whitespace-nowrap"
             >
               시작하기
             </Link>
@@ -211,9 +211,9 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Radio className="w-6 h-6 text-black" />
-            <span className="text-xl font-bold text-black">RadioGPT</span>
+            <span className="text-xl font-bold text-black">Jupa</span>
           </div>
-          <p className="text-gray-600">© 2024 RadioGPT. 모든 권리 보유.</p>
+          <p className="text-gray-600">© 2024 Jupa. 모든 권리 보유.</p>
         </div>
       </footer>
     </div>
